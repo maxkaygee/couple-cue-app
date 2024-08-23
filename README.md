@@ -18,7 +18,7 @@ Couple Cue App is a web application designed to enhance shared experiences for c
 
 ## Live Demo
 
-(COMING SOON)
+couplecue.cc
 
 ## Development
 
