@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { ActivityForm } from './ActivityForm';
-import { ActivityList } from './ActivityList';
-import { RandomSelector } from './RandomSelector';
+import { ActivityForm } from './components/ActivityForm';
+import { ActivityList } from './components/ActivityList';
+import { RandomSelector } from './components/RandomSelector';
 
 export default function App() {
   const [activities, setActivities] = useState([]);
