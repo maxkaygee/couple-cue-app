@@ -1,13 +1,23 @@
 import React, { useState } from 'react';
 import { auth, googleProvider, db } from '../firebase';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signInWithPopup, signOut } from 'firebase/auth';
-import { setDoc, doc, getDoc } from 'firebase/firestore';
+import { setDoc, doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
 
 export function Auth({ user, setUser }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [username, setUsername] = useState('');
   const [error, setError] = useState(null);
+
+  const isUsernameValid = (username) => {
+    return username.length >= 3 && username.length <= 20 && /^[a-zA-Z0-9_]+$/.test(username);
+  };
+
+  const isUsernameUnique = async (username) => {
+    const q = query(collection(db, 'users'), where('username', '==', username));
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.empty;
+  };
 
   const createUserDocument = async (user, username) => {
     if (!user) return;
@@ -31,8 +41,12 @@ export function Auth({ user, setUser }) {
 
   const handleSignUp = async (e) => {
     e.preventDefault();
-    if (!username.trim()) {
-      setError('Username is required');
+    if (!isUsernameValid(username)) {
+      setError('Username must be 3-20 characters long and contain only letters, numbers, and underscores');
+      return;
+    }
+    if (!(await isUsernameUnique(username))) {
+      setError('Username is already taken');
       return;
     }
     try {

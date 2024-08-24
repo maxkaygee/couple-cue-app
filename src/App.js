@@ -6,11 +6,14 @@ import { Auth } from './components/Auth';
 import { ActivityForm } from './components/ActivityForm';
 import { ActivityList } from './components/ActivityList';
 import { RandomSelector } from './components/RandomSelector';
+import { UserProfile } from './components/UserProfile';
+import { CouplePairing } from './components/CouplePairing';
 
 export default function App() {
   const [user, setUser] = useState(null);
   const [username, setUsername] = useState('');
   const [activities, setActivities] = useState([]);
+  const [showProfile, setShowProfile] = useState(false);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
@@ -61,13 +64,20 @@ export default function App() {
   return (
     <div className="min-h-screen bg-gradient-to-r from-purple-400 via-pink-500 to-red-500 p-8">
       <div className="max-w-4xl mx-auto bg-white rounded-lg shadow-xl overflow-hidden">
-        <header className="bg-gray-800 text-white p-6">
+        <header className="bg-gray-800 text-white p-6 flex justify-between items-center">
           <h1 className="text-3xl font-bold">Couple Cue</h1>
-          {username && <p className="text-sm mt-2">Welcome, {username}!</p>}
+          {user && (
+            <button 
+              onClick={() => setShowProfile(!showProfile)} 
+              className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+            >
+              {showProfile ? 'Back to Activities' : 'View Profile'}
+            </button>
+          )}
         </header>
         <main className="p-6">
           <Auth user={user} setUser={setUser} />
-          {user && (
+          {user && !showProfile && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <ActivityForm onAddActivity={addActivity} />
@@ -75,6 +85,12 @@ export default function App() {
               </div>
               <ActivityList activities={activities} />
             </div>
+          )}
+          {user && showProfile && (
+            <>
+              <UserProfile user={user} />
+              <CouplePairing user={user} />
+            </>
           )}
         </main>
       </div>
