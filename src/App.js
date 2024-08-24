@@ -11,6 +11,7 @@ import { CouplePairing } from './components/CouplePairing';
 
 export default function App() {
   const [user, setUser] = useState(null);
+  const [partnerId, setPartnerId] = useState(null);
   const [activities, setActivities] = useState([]);
   const [showProfile, setShowProfile] = useState(false);
 
@@ -20,9 +21,10 @@ export default function App() {
       if (currentUser) {
         const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
         if (userDoc.exists()) {
-          // We're not using the username state anymore, so we've removed it
-          // If you need to use the username elsewhere, you can add it back
+          setPartnerId(userDoc.data().partnerId || null);
         }
+      } else {
+        setPartnerId(null);
       }
     });
 
@@ -31,8 +33,8 @@ export default function App() {
 
   useEffect(() => {
     if (user) {
-      const q = query(collection(db, 'activities'), where("userId", "==", user.uid));
-      const unsubscribe = onSnapshot(q, (querySnapshot) => {
+      const userActivitiesQuery = query(collection(db, 'activities'), where("userId", "in", [user.uid, partnerId]));
+      const unsubscribe = onSnapshot(userActivitiesQuery, (querySnapshot) => {
         const activitiesArray = querySnapshot.docs.map(doc => ({
           id: doc.id,
           ...doc.data()
@@ -44,14 +46,15 @@ export default function App() {
     } else {
       setActivities([]);
     }
-  }, [user]);
+  }, [user, partnerId]);
 
   const addActivity = async (activity) => {
     if (user) {
       try {
         await addDoc(collection(db, 'activities'), {
           ...activity,
-          userId: user.uid
+          userId: user.uid,
+          createdAt: new Date()
         });
       } catch (error) {
         console.error("Error adding document: ", error);
@@ -81,13 +84,13 @@ export default function App() {
                 <ActivityForm onAddActivity={addActivity} />
                 <RandomSelector activities={activities} />
               </div>
-              <ActivityList activities={activities} />
+              <ActivityList activities={activities} currentUserId={user.uid} />
             </div>
           )}
           {user && showProfile && (
             <>
               <UserProfile user={user} />
-              <CouplePairing user={user} />
+              <CouplePairing user={user} setPartnerId={setPartnerId} />
             </>
           )}
         </main>

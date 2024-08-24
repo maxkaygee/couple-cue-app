@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { db } from '../firebase';
 import { doc, getDoc, updateDoc, collection, query, where, getDocs } from 'firebase/firestore';
 
-export function CouplePairing({ user }) {
+export function CouplePairing({ user, setPartnerId }) {
   const [partnerCode, setPartnerCode] = useState('');
   const [userCode, setUserCode] = useState('');
   const [partnerUsername, setPartnerUsername] = useState('');
@@ -24,17 +24,20 @@ export function CouplePairing({ user }) {
             setUserCode(userData.coupleCode);
           }
           if (userData.partnerId) {
+            setPartnerId(userData.partnerId);
             const partnerRef = doc(db, 'users', userData.partnerId);
             const partnerSnap = await getDoc(partnerRef);
             if (partnerSnap.exists()) {
               setPartnerUsername(partnerSnap.data().username);
             }
+          } else {
+            setPartnerId(null);
           }
         }
       }
     };
     fetchUserData();
-  }, [user]);
+  }, [user, setPartnerId]);
 
   const generateCoupleCode = () => {
     return Math.random().toString(36).substring(2, 8).toUpperCase();
@@ -70,16 +73,13 @@ export function CouplePairing({ user }) {
       const userRef = doc(db, 'users', user.uid);
       const partnerRef = doc(db, 'users', partnerDoc.id);
 
-      await updateDoc(userRef, { partnerId: partnerDoc.id });
-      await updateDoc(partnerRef, { partnerId: user.uid });
+    await updateDoc(userRef, { partnerId: partnerDoc.id });
+    await updateDoc(partnerRef, { partnerId: user.uid });
 
-      setPartnerUsername(partnerData.username);
-      setSuccess("Successfully paired with " + partnerData.username + "!");
-      setPartnerCode('');
-    } catch (error) {
-      console.error("Error in handlePairCouple:", error);
-      setError('Failed to pair with partner. Please try again.');
-    }
+    setPartnerId(partnerDoc.id);
+    setPartnerUsername(partnerData.username);
+    setSuccess("Successfully paired with " + partnerData.username + "!");
+    setPartnerCode('');
   };
 
   const handleUnpair = async () => {
@@ -92,6 +92,7 @@ export function CouplePairing({ user }) {
         const partnerRef = doc(db, 'users', userData.partnerId);
         await updateDoc(userRef, { partnerId: null });
         await updateDoc(partnerRef, { partnerId: null });
+        setPartnerId(null);
         setPartnerUsername('');
         setSuccess("Successfully unpaired.");
       }
