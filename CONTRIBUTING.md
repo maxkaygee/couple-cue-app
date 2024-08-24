@@ -25,7 +25,7 @@ At this point, you're ready to make your changes! Feel free to ask for help; eve
 The first thing you'll need to do is get my code onto your machine. To do this, you'll need to "clone" the repository. Run this command in your terminal:
 
 ```sh
-git clone https://github.com/yourusername/couple-cue-app.git
+git clone https://github.com/maxkaygee/couple-cue-app.git
 ```
 
 ## Make a Pull Request
@@ -33,7 +33,7 @@ git clone https://github.com/yourusername/couple-cue-app.git
 At this point, you should switch back to your master branch and make sure it's up to date with the latest Couple Cue App master branch:
 
 ```sh
-git remote add upstream https://github.com/yourusername/couple-cue-app.git
+git remote add upstream https://github.com/maxkaygee/couple-cue-app.git
 git checkout master
 git pull upstream master
 ```
