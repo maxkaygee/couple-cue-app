@@ -60,10 +60,10 @@ export function ActivityForm({ onAddActivity }) {
           )}
           {category === 'Travel' && (
             <>
-              <option value="0-$100">0-$100</option>
-              <option value="$100-500">$100-500</option>
-              <option value="500-1500">500-1500</option>
-              <option value="1500+">1500+</option>
+              <option value="$0-$100">$0-$100</option>
+              <option value="$101-$500">$101-$500</option>
+              <option value="$501-$1500">$501-$1500</option>
+              <option value="$1501+">$1501+</option>
             </>
           )}
         </select>
