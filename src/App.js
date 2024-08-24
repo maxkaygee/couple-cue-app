@@ -1,4 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { collection, addDoc, onSnapshot, query } from 'firebase/firestore';
+import { db } from './firebase';
 import { ActivityForm } from './components/ActivityForm';
 import { ActivityList } from './components/ActivityList';
 import { RandomSelector } from './components/RandomSelector';
@@ -6,8 +8,25 @@ import { RandomSelector } from './components/RandomSelector';
 export default function App() {
   const [activities, setActivities] = useState([]);
 
-  const addActivity = (activity) => {
-    setActivities([...activities, activity]);
+  useEffect(() => {
+    const q = query(collection(db, 'activities'));
+    const unsubscribe = onSnapshot(q, (querySnapshot) => {
+      const activitiesArray = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setActivities(activitiesArray);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  const addActivity = async (activity) => {
+    try {
+      await addDoc(collection(db, 'activities'), activity);
+    } catch (error) {
+      console.error("Error adding document: ", error);
+    }
   };
 
   return (
