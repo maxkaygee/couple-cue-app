@@ -73,13 +73,17 @@ export function CouplePairing({ user, setPartnerId }) {
       const userRef = doc(db, 'users', user.uid);
       const partnerRef = doc(db, 'users', partnerDoc.id);
 
-    await updateDoc(userRef, { partnerId: partnerDoc.id });
-    await updateDoc(partnerRef, { partnerId: user.uid });
+      await updateDoc(userRef, { partnerId: partnerDoc.id });
+      await updateDoc(partnerRef, { partnerId: user.uid });
 
-    setPartnerId(partnerDoc.id);
-    setPartnerUsername(partnerData.username);
-    setSuccess("Successfully paired with " + partnerData.username + "!");
-    setPartnerCode('');
+      setPartnerId(partnerDoc.id);
+      setPartnerUsername(partnerData.username);
+      setSuccess("Successfully paired with " + partnerData.username + "!");
+      setPartnerCode('');
+    } catch (error) {
+      console.error("Error in handlePairCouple:", error);
+      setError('Failed to pair with partner. Please try again.');
+    }
   };
 
   const handleUnpair = async () => {
