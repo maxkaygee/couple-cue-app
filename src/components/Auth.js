@@ -1,16 +1,43 @@
 import React, { useState } from 'react';
-import { auth, googleProvider } from '../firebase';
+import { auth, googleProvider, db } from '../firebase';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signInWithPopup, signOut } from 'firebase/auth';
+import { setDoc, doc, getDoc } from 'firebase/firestore';
 
 export function Auth({ user, setUser }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [username, setUsername] = useState('');
   const [error, setError] = useState(null);
+
+  const createUserDocument = async (user, username) => {
+    if (!user) return;
+
+    const userRef = doc(db, 'users', user.uid);
+    const snapshot = await getDoc(userRef);
+
+    if (!snapshot.exists()) {
+      const { email } = user;
+      try {
+        await setDoc(userRef, {
+          username,
+          email,
+          createdAt: new Date(),
+        });
+      } catch (error) {
+        console.log('Error creating user document', error);
+      }
+    }
+  };
 
   const handleSignUp = async (e) => {
     e.preventDefault();
+    if (!username.trim()) {
+      setError('Username is required');
+      return;
+    }
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      await createUserDocument(userCredential.user, username);
       setUser(userCredential.user);
     } catch (error) {
       setError(error.message);
@@ -30,6 +57,7 @@ export function Auth({ user, setUser }) {
   const handleGoogleSignIn = async () => {
     try {
       const result = await signInWithPopup(auth, googleProvider);
+      await createUserDocument(result.user, result.user.displayName);
       setUser(result.user);
     } catch (error) {
       setError(error.message);
@@ -58,7 +86,14 @@ export function Auth({ user, setUser }) {
 
   return (
     <div className="bg-gray-100 p-4 rounded-lg mb-4">
-      <form onSubmit={handleSignIn} className="mb-4">
+      <form onSubmit={handleSignUp} className="mb-4">
+        <input
+          type="text"
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+          placeholder="Username"
+          className="w-full p-2 mb-2 border rounded"
+        />
         <input
           type="email"
           value={email}
@@ -73,12 +108,12 @@ export function Auth({ user, setUser }) {
           placeholder="Password"
           className="w-full p-2 mb-2 border rounded"
         />
-        <button type="submit" className="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600 mb-2">
-          Sign In
+        <button type="submit" className="w-full bg-green-500 text-white p-2 rounded hover:bg-green-600 mb-2">
+          Sign Up
         </button>
       </form>
-      <button onClick={handleSignUp} className="w-full bg-green-500 text-white p-2 rounded hover:bg-green-600 mb-2">
-        Sign Up
+      <button onClick={handleSignIn} className="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600 mb-2">
+        Sign In
       </button>
       <button onClick={handleGoogleSignIn} className="w-full bg-red-500 text-white p-2 rounded hover:bg-red-600">
         Sign In with Google

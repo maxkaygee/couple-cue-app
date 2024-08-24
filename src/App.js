@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { collection, addDoc, onSnapshot, query, where } from 'firebase/firestore';
+import { collection, addDoc, onSnapshot, query, where, doc, getDoc } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import { db, auth } from './firebase';
 import { Auth } from './components/Auth';
@@ -9,11 +9,20 @@ import { RandomSelector } from './components/RandomSelector';
 
 export default function App() {
   const [user, setUser] = useState(null);
+  const [username, setUsername] = useState('');
   const [activities, setActivities] = useState([]);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
+      if (currentUser) {
+        const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
+        if (userDoc.exists()) {
+          setUsername(userDoc.data().username);
+        }
+      } else {
+        setUsername('');
+      }
     });
 
     return () => unsubscribe();
@@ -54,6 +63,7 @@ export default function App() {
       <div className="max-w-4xl mx-auto bg-white rounded-lg shadow-xl overflow-hidden">
         <header className="bg-gray-800 text-white p-6">
           <h1 className="text-3xl font-bold">Couple Cue</h1>
+          {username && <p className="text-sm mt-2">Welcome, {username}!</p>}
         </header>
         <main className="p-6">
           <Auth user={user} setUser={setUser} />
