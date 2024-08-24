@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '../firebase';
-import { doc, getDoc, updateDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, collection, query, where, getDocs, setDoc } from 'firebase/firestore';
 
 export function CouplePairing({ user }) {
   const [partnerCode, setPartnerCode] = useState('');
   const [userCode, setUserCode] = useState('');
   const [partnerUsername, setPartnerUsername] = useState('');
   const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(null);
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -15,7 +16,13 @@ export function CouplePairing({ user }) {
         const userSnap = await getDoc(userRef);
         if (userSnap.exists()) {
           const userData = userSnap.data();
-          setUserCode(userData.coupleCode || generateCoupleCode());
+          if (!userData.coupleCode) {
+            const newCode = generateCoupleCode();
+            await updateDoc(userRef, { coupleCode: newCode });
+            setUserCode(newCode);
+          } else {
+            setUserCode(userData.coupleCode);
+          }
           if (userData.partnerId) {
             const partnerRef = doc(db, 'users', userData.partnerId);
             const partnerSnap = await getDoc(partnerRef);
@@ -34,15 +41,32 @@ export function CouplePairing({ user }) {
   };
 
   const handlePairCouple = async () => {
+    setError(null);
+    setSuccess(null);
+    if (!partnerCode.trim()) {
+      setError("Please enter a partner code.");
+      return;
+    }
     try {
       const q = query(collection(db, 'users'), where('coupleCode', '==', partnerCode));
       const querySnapshot = await getDocs(q);
       if (querySnapshot.empty) {
-        setError('Invalid partner code');
+        setError('Invalid partner code. Please check and try again.');
         return;
       }
       const partnerDoc = querySnapshot.docs[0];
       const partnerData = partnerDoc.data();
+      
+      if (partnerDoc.id === user.uid) {
+        setError("You can't pair with yourself!");
+        return;
+      }
+      
+      if (partnerData.partnerId) {
+        setError("This user is already paired with someone else.");
+        return;
+      }
+
       const userRef = doc(db, 'users', user.uid);
       const partnerRef = doc(db, 'users', partnerDoc.id);
 
@@ -50,9 +74,30 @@ export function CouplePairing({ user }) {
       await updateDoc(partnerRef, { partnerId: user.uid });
 
       setPartnerUsername(partnerData.username);
-      setError(null);
+      setSuccess("Successfully paired with " + partnerData.username + "!");
+      setPartnerCode('');
     } catch (error) {
-      setError('Failed to pair with partner');
+      console.error("Error in handlePairCouple:", error);
+      setError('Failed to pair with partner. Please try again.');
+    }
+  };
+
+  const handleUnpair = async () => {
+    try {
+      const userRef = doc(db, 'users', user.uid);
+      const userSnap = await getDoc(userRef);
+      const userData = userSnap.data();
+
+      if (userData.partnerId) {
+        const partnerRef = doc(db, 'users', userData.partnerId);
+        await updateDoc(userRef, { partnerId: null });
+        await updateDoc(partnerRef, { partnerId: null });
+        setPartnerUsername('');
+        setSuccess("Successfully unpaired.");
+      }
+    } catch (error) {
+      console.error("Error in handleUnpair:", error);
+      setError('Failed to unpair. Please try again.');
     }
   };
 
@@ -62,10 +107,16 @@ export function CouplePairing({ user }) {
     <div className="bg-white p-6 rounded-lg shadow-md mt-6">
       <h2 className="text-2xl font-bold mb-4">Couple Pairing</h2>
       {partnerUsername ? (
-        <p>You are paired with: {partnerUsername}</p>
+        <div>
+          <p className="mb-4">You are paired with: {partnerUsername}</p>
+          <button onClick={handleUnpair} className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded">
+            Unpair
+          </button>
+        </div>
       ) : (
         <>
-          <p className="mb-2">Your couple code: {userCode}</p>
+          <p className="mb-2">Your couple code: <span className="font-bold">{userCode}</span></p>
+          <p className="mb-2 text-sm text-gray-600">Share this code with your partner to pair up.</p>
           <div className="mb-4">
             <input
               type="text"
@@ -81,6 +132,7 @@ export function CouplePairing({ user }) {
         </>
       )}
       {error && <p className="text-red-500 mt-2">{error}</p>}
+      {success && <p className="text-green-500 mt-2">{success}</p>}
     </div>
   );
 }

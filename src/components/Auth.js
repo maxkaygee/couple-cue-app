@@ -20,24 +20,26 @@ export function Auth({ user, setUser }) {
   };
 
   const createUserDocument = async (user, username) => {
-    if (!user) return;
+  if (!user) return;
 
-    const userRef = doc(db, 'users', user.uid);
-    const snapshot = await getDoc(userRef);
+  const userRef = doc(db, 'users', user.uid);
+  const snapshot = await getDoc(userRef);
 
-    if (!snapshot.exists()) {
-      const { email } = user;
-      try {
-        await setDoc(userRef, {
-          username,
-          email,
-          createdAt: new Date(),
-        });
-      } catch (error) {
-        console.log('Error creating user document', error);
-      }
+  if (!snapshot.exists()) {
+    const { email } = user;
+    const coupleCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+    try {
+      await setDoc(userRef, {
+        username,
+        email,
+        createdAt: new Date(),
+        coupleCode,
+      });
+    } catch (error) {
+      console.log('Error creating user document', error);
     }
-  };
+  }
+};
 
   const handleSignUp = async (e) => {
     e.preventDefault();
