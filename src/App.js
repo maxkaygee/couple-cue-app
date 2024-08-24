@@ -11,7 +11,6 @@ import { CouplePairing } from './components/CouplePairing';
 
 export default function App() {
   const [user, setUser] = useState(null);
-  const [username, setUsername] = useState('');
   const [activities, setActivities] = useState([]);
   const [showProfile, setShowProfile] = useState(false);
 
@@ -21,10 +20,9 @@ export default function App() {
       if (currentUser) {
         const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
         if (userDoc.exists()) {
-          setUsername(userDoc.data().username);
+          // We're not using the username state anymore, so we've removed it
+          // If you need to use the username elsewhere, you can add it back
         }
-      } else {
-        setUsername('');
       }
     });
 
