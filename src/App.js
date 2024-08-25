@@ -1,7 +1,4 @@
-import React, { useState, useEffect } from 'react';
-import { collection, addDoc, onSnapshot, query, where, doc, getDoc } from 'firebase/firestore';
-import { onAuthStateChanged } from 'firebase/auth';
-import { db, auth } from './firebase';
+import React, { useState } from 'react';
 import { Auth } from './components/Auth';
 import { ActivityForm } from './components/ActivityForm';
 import { ActivityList } from './components/ActivityList';
@@ -18,8 +15,6 @@ export default function App() {
   const [showProfile, setShowProfile] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showPendingReview, setShowPendingReview] = useState(false);
-
-  // ... (rest of the useEffects and functions remain the same)
 
   return (
     <div className="min-h-screen bg-gradient-to-r from-purple-400 via-pink-500 to-red-500 p-8">
