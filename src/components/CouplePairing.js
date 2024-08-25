@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '../firebase';
-import { doc, getDoc, updateDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, collection, query, where, getDocs, addDoc } from 'firebase/firestore';
 
 export function CouplePairing({ user, setPartnerId }) {
   const [partnerCode, setPartnerCode] = useState('');
@@ -43,7 +43,7 @@ export function CouplePairing({ user, setPartnerId }) {
     return Math.random().toString(36).substring(2, 8).toUpperCase();
   };
 
-  const handlePairCouple = async () => {
+  const handleSendPairingRequest = async () => {
     setError(null);
     setSuccess(null);
     if (!partnerCode.trim()) {
@@ -70,19 +70,21 @@ export function CouplePairing({ user, setPartnerId }) {
         return;
       }
 
-      const userRef = doc(db, 'users', user.uid);
-      const partnerRef = doc(db, 'users', partnerDoc.id);
+      // Send a pairing request notification
+      await addDoc(collection(db, 'notifications'), {
+        type: 'pairingRequest',
+        senderId: user.uid,
+        senderUsername: user.displayName || user.email,
+        recipientId: partnerDoc.id,
+        message: `${user.displayName || user.email} wants to pair with you!`,
+        createdAt: new Date()
+      });
 
-      await updateDoc(userRef, { partnerId: partnerDoc.id });
-      await updateDoc(partnerRef, { partnerId: user.uid });
-
-      setPartnerId(partnerDoc.id);
-      setPartnerUsername(partnerData.username);
-      setSuccess("Successfully paired with " + partnerData.username + "!");
+      setSuccess("Pairing request sent successfully!");
       setPartnerCode('');
     } catch (error) {
-      console.error("Error in handlePairCouple:", error);
-      setError('Failed to pair with partner. Please try again.');
+      console.error("Error in handleSendPairingRequest:", error);
+      setError('Failed to send pairing request. Please try again.');
     }
   };
 
@@ -131,8 +133,8 @@ export function CouplePairing({ user, setPartnerId }) {
               className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
             />
           </div>
-          <button onClick={handlePairCouple} className="bg-pink-500 hover:bg-pink-700 text-white font-bold py-2 px-4 rounded">
-            Pair with Partner
+          <button onClick={handleSendPairingRequest} className="bg-pink-500 hover:bg-pink-700 text-white font-bold py-2 px-4 rounded">
+            Send Pairing Request
           </button>
         </>
       )}
