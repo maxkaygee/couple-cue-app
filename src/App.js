@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { collection, addDoc, onSnapshot, query, where, doc, getDoc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { collection, onSnapshot, query, where } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import { db, auth } from './firebase';
 import { Auth } from './components/Auth';
@@ -37,7 +37,7 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (user) {
+    if (user && partnerId) {
       const q = query(
         collection(db, 'activities'),
         where('userId', 'in', [user.uid, partnerId])
@@ -47,29 +47,13 @@ export default function App() {
           id: doc.id,
           ...doc.data()
         }));
+        console.log("Fetched activities:", activitiesArray); // Add this line for debugging
         setActivities(activitiesArray);
       });
 
       return () => unsubscribe();
-    }
-  }, [user, partnerId]);
-
-  useEffect(() => {
-    if (user && partnerId) {
-      const q = query(
-        collection(db, 'pendingActivities'),
-        where('createdFor', '==', user.uid),
-        where('status', '==', 'pending')
-      );
-      const unsubscribe = onSnapshot(q, (querySnapshot) => {
-        const pendingActivitiesArray = querySnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        }));
-        setPendingActivities(pendingActivitiesArray);
-      });
-
-      return () => unsubscribe();
+    } else {
+      setActivities([]);
     }
   }, [user, partnerId]);
 
@@ -179,23 +163,15 @@ export default function App() {
               <ActivityList activities={activities} currentUserId={user.uid} partnerId={partnerId} />
             </div>
           )}
-          {user && showProfile && (
-            <>
-              <UserProfile user={user} />
-              <CouplePairing user={user} setPartnerId={setPartnerId} />
-            </>
-          )}
-          {user && showNotifications && (
-            <Notifications userId={user.uid} />
-          )}
-          {user && showPendingReview && (
-            <PendingActivitiesReview 
-              user={user} 
-              pendingActivities={pendingActivities} 
-              onApprove={approveActivity} 
-              onReject={rejectActivity} 
-            />
-          )}
+            {user && !showProfile && !showNotifications && !showPendingReview && (
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <ActivityForm user={user} partnerId={partnerId} onAddActivity={addActivity} />
+          <RandomSelector activities={activities} />
+        </div>
+        <ActivityList activities={activities} currentUserId={user.uid} partnerId={partnerId} />
+      </div>
+    )}
         </main>
       </div>
     </div>

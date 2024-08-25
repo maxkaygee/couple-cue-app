@@ -1,6 +1,8 @@
 import React from 'react';
 
-export function ActivityList({ activities, currentUserId }) {
+export function ActivityList({ activities, currentUserId, partnerId }) {
+  console.log("ActivityList received activities:", activities); // Add this line for debugging
+
   return (
     <div className="bg-gray-100 p-4 rounded-lg">
       <h2 className="text-xl font-semibold mb-4">Activity List</h2>
@@ -17,6 +19,9 @@ export function ActivityList({ activities, currentUserId }) {
               <p className="text-xs text-gray-500 mt-1">
                 Added by: {activity.userId === currentUserId ? 'You' : 'Your partner'}
               </p>
+              {activity.status && (
+                <p className="text-xs text-blue-500 mt-1">Status: {activity.status}</p>
+              )}
             </li>
           ))}
         </ul>
