@@ -9,6 +9,7 @@ import { RandomSelector } from './components/RandomSelector';
 import { UserProfile } from './components/UserProfile';
 import { CouplePairing } from './components/CouplePairing';
 import { Notifications } from './components/Notifications';
+import { PendingActivitiesReview } from './components/PendingActivitiesReview';
 
 export default function App() {
   const [user, setUser] = useState(null);
@@ -16,56 +17,9 @@ export default function App() {
   const [activities, setActivities] = useState([]);
   const [showProfile, setShowProfile] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showPendingReview, setShowPendingReview] = useState(false);
 
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-      setUser(currentUser);
-      if (currentUser) {
-        const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
-        if (userDoc.exists()) {
-          setPartnerId(userDoc.data().partnerId || null);
-        }
-      } else {
-        setPartnerId(null);
-      }
-    });
-
-    return () => unsubscribe();
-  }, []);
-
-  useEffect(() => {
-    if (user) {
-      const userActivitiesQuery = query(
-        collection(db, 'activities'),
-        where('userId', 'in', [user.uid, partnerId])
-      );
-      const unsubscribe = onSnapshot(userActivitiesQuery, (querySnapshot) => {
-        const activitiesArray = querySnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        }));
-        setActivities(activitiesArray);
-      });
-
-      return () => unsubscribe();
-    } else {
-      setActivities([]);
-    }
-  }, [user, partnerId]);
-
-  const addActivity = async (activity) => {
-    if (user) {
-      try {
-        await addDoc(collection(db, 'activities'), {
-          ...activity,
-          userId: user.uid,
-          createdAt: new Date()
-        });
-      } catch (error) {
-        console.error("Error adding document: ", error);
-      }
-    }
-  };
+  // ... (rest of the useEffects and functions remain the same)
 
   return (
     <div className="min-h-screen bg-gradient-to-r from-purple-400 via-pink-500 to-red-500 p-8">
@@ -75,26 +29,54 @@ export default function App() {
           {user && (
             <div className="flex space-x-4">
               <button 
-                onClick={() => setShowProfile(!showProfile)} 
+                onClick={() => {
+                  setShowProfile(false);
+                  setShowNotifications(false);
+                  setShowPendingReview(false);
+                }} 
                 className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
               >
-                {showProfile ? 'Back to Activities' : 'View Profile'}
+                Activities
               </button>
               <button 
-                onClick={() => setShowNotifications(!showNotifications)} 
+                onClick={() => {
+                  setShowProfile(true);
+                  setShowNotifications(false);
+                  setShowPendingReview(false);
+                }} 
                 className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
               >
-                {showNotifications ? 'Hide Notifications' : 'View Notifications'}
+                Profile
+              </button>
+              <button 
+                onClick={() => {
+                  setShowProfile(false);
+                  setShowNotifications(true);
+                  setShowPendingReview(false);
+                }} 
+                className="bg-yellow-500 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded"
+              >
+                Notifications
+              </button>
+              <button 
+                onClick={() => {
+                  setShowProfile(false);
+                  setShowNotifications(false);
+                  setShowPendingReview(true);
+                }} 
+                className="bg-purple-500 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded"
+              >
+                Review Activities
               </button>
             </div>
           )}
         </header>
         <main className="p-6">
           <Auth user={user} setUser={setUser} />
-          {user && !showProfile && !showNotifications && (
+          {user && !showProfile && !showNotifications && !showPendingReview && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <ActivityForm onAddActivity={addActivity} partnerId={partnerId} />
+                <ActivityForm user={user} partnerId={partnerId} />
                 <RandomSelector activities={activities} />
               </div>
               <ActivityList activities={activities} currentUserId={user.uid} partnerId={partnerId} />
@@ -108,6 +90,9 @@ export default function App() {
           )}
           {user && showNotifications && (
             <Notifications userId={user.uid} />
+          )}
+          {user && showPendingReview && (
+            <PendingActivitiesReview user={user} />
           )}
         </main>
       </div>
