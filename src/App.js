@@ -15,9 +15,8 @@ export default function App() {
   const [user, setUser] = useState(null);
   const [partnerId, setPartnerId] = useState(null);
   const [activities, setActivities] = useState([]);
-  const [showProfile, setShowProfile] = useState(false);
-  const [showNotifications, setShowNotifications] = useState(false);
-  const [showPendingReview, setShowPendingReview] = useState(false);
+  const [pendingActivities, setPendingActivities] = useState([]);
+  const [currentView, setCurrentView] = useState('activities');
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
@@ -53,6 +52,28 @@ export default function App() {
       return () => unsubscribe();
     } else {
       setActivities([]);
+    }
+  }, [user, partnerId]);
+
+  useEffect(() => {
+    if (user && partnerId) {
+      const q = query(
+        collection(db, 'pendingActivities'),
+        where('createdFor', '==', user.uid),
+        where('status', '==', 'pending')
+      );
+      const unsubscribe = onSnapshot(q, (querySnapshot) => {
+        const pendingActivitiesArray = querySnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+        console.log("Fetched pending activities:", pendingActivitiesArray);
+        setPendingActivities(pendingActivitiesArray);
+      });
+
+      return () => unsubscribe();
+    } else {
+      setPendingActivities([]);
     }
   }, [user, partnerId]);
 
@@ -101,83 +122,77 @@ export default function App() {
     }
   }, [user]);
 
+  const renderContent = () => {
+    switch (currentView) {
+      case 'activities':
+        return (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div>
+              <ActivityForm user={user} partnerId={partnerId} onAddActivity={addActivity} />
+              <RandomSelector activities={activities} />
+            </div>
+            <ActivityList activities={activities} currentUserId={user.uid} partnerId={partnerId} />
+          </div>
+        );
+      case 'profile':
+        return (
+          <>
+            <UserProfile user={user} />
+            <CouplePairing user={user} setPartnerId={setPartnerId} />
+          </>
+        );
+      case 'notifications':
+        return <Notifications userId={user.uid} />;
+      case 'pendingReview':
+        return (
+          <PendingActivitiesReview 
+            pendingActivities={pendingActivities}
+            onApprove={approveActivity} 
+            onReject={rejectActivity} 
+          />
+        );
+      default:
+        return null;
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-r from-purple-400 via-pink-500 to-red-500 p-8">
+    <div className="min-h-screen bg-gradient-to-r from-purple-400 via-pink-500 to-red-500 p-4 sm:p-8">
       <div className="max-w-4xl mx-auto bg-white rounded-lg shadow-xl overflow-hidden">
-        <header className="bg-gray-800 text-white p-6 flex justify-between items-center">
-          <h1 className="text-3xl font-bold">Couple Cue</h1>
+        <header className="bg-gray-800 text-white p-4 sm:p-6">
+          <h1 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-0">Couple Cue</h1>
           {user && (
-            <div className="flex space-x-4">
+            <nav className="flex flex-wrap justify-center sm:justify-end space-x-2 sm:space-x-4 mt-4 sm:mt-0">
               <button 
-                onClick={() => {
-                  setShowProfile(false);
-                  setShowNotifications(false);
-                  setShowPendingReview(false);
-                }} 
-                className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+                onClick={() => setCurrentView('activities')}
+                className={`${currentView === 'activities' ? 'bg-blue-700' : 'bg-blue-500'} hover:bg-blue-700 text-white font-bold py-2 px-4 rounded text-sm sm:text-base mb-2 sm:mb-0`}
               >
                 Activities
               </button>
               <button 
-                onClick={() => {
-                  setShowProfile(true);
-                  setShowNotifications(false);
-                  setShowPendingReview(false);
-                }} 
-                className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
+                onClick={() => setCurrentView('profile')}
+                className={`${currentView === 'profile' ? 'bg-green-700' : 'bg-green-500'} hover:bg-green-700 text-white font-bold py-2 px-4 rounded text-sm sm:text-base mb-2 sm:mb-0`}
               >
                 Profile
               </button>
               <button 
-                onClick={() => {
-                  setShowProfile(false);
-                  setShowNotifications(true);
-                  setShowPendingReview(false);
-                }} 
-                className="bg-yellow-500 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded"
+                onClick={() => setCurrentView('notifications')}
+                className={`${currentView === 'notifications' ? 'bg-yellow-700' : 'bg-yellow-500'} hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded text-sm sm:text-base mb-2 sm:mb-0`}
               >
                 Notifications
               </button>
               <button 
-                onClick={() => {
-                  setShowProfile(false);
-                  setShowNotifications(false);
-                  setShowPendingReview(true);
-                }} 
-                className="bg-purple-500 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded"
+                onClick={() => setCurrentView('pendingReview')}
+                className={`${currentView === 'pendingReview' ? 'bg-purple-700' : 'bg-purple-500'} hover:bg-purple-700 text-white font-bold py-2 px-4 rounded text-sm sm:text-base`}
               >
-                Review Activities
+                Review
               </button>
-            </div>
+            </nav>
           )}
         </header>
-        <main className="p-6">
+        <main className="p-4 sm:p-6">
           <Auth user={user} setUser={setUser} />
-          {user && !showProfile && !showNotifications && !showPendingReview && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <ActivityForm user={user} partnerId={partnerId} onAddActivity={addActivity} />
-                <RandomSelector activities={activities} />
-              </div>
-              <ActivityList activities={activities} currentUserId={user.uid} partnerId={partnerId} />
-            </div>
-          )}
-          {user && showProfile && (
-            <>
-              <UserProfile user={user} />
-              <CouplePairing user={user} setPartnerId={setPartnerId} />
-            </>
-          )}
-          {user && showNotifications && (
-            <Notifications userId={user.uid} />
-          )}
-          {user && showPendingReview && (
-            <PendingActivitiesReview 
-              user={user} 
-              onApprove={approveActivity} 
-              onReject={rejectActivity} 
-            />
-          )}
+          {user && renderContent()}
         </main>
       </div>
     </div>

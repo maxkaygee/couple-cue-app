@@ -1,32 +1,39 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { SwipeableActivityCard } from './SwipeableActivityCard';
 
 export function PendingActivitiesReview({ pendingActivities, onApprove, onReject }) {
   const [currentActivityIndex, setCurrentActivityIndex] = useState(0);
   const [note, setNote] = useState('');
 
-  const handleSwipe = (direction, activity) => {
+  useEffect(() => {
+    setCurrentActivityIndex(0);
+  }, [pendingActivities]);
+
+  if (!pendingActivities || pendingActivities.length === 0) {
+    return <p className="text-center py-4">No pending activities to review.</p>;
+  }
+
+  const currentActivity = pendingActivities[currentActivityIndex];
+
+  const handleSwipe = (direction) => {
     if (direction === 'right') {
-      onApprove(activity);
+      onApprove(currentActivity);
     } else {
       setNote('');
       // Show note input for rejection
     }
-    setCurrentActivityIndex(prevIndex => prevIndex + 1);
+    setCurrentActivityIndex(prevIndex => 
+      prevIndex + 1 >= pendingActivities.length ? 0 : prevIndex + 1
+    );
   };
 
   const handleReject = () => {
-    const currentActivity = pendingActivities[currentActivityIndex];
     onReject(currentActivity, note);
     setNote('');
-    setCurrentActivityIndex(prevIndex => prevIndex + 1);
+    setCurrentActivityIndex(prevIndex => 
+      prevIndex + 1 >= pendingActivities.length ? 0 : prevIndex + 1
+    );
   };
-
-  if (pendingActivities.length === 0 || currentActivityIndex >= pendingActivities.length) {
-    return <p>No pending activities to review.</p>;
-  }
-
-  const currentActivity = pendingActivities[currentActivityIndex];
 
   return (
     <div className="relative h-96">
