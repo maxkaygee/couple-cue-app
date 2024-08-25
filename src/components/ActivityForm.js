@@ -1,33 +1,18 @@
 import React, { useState } from 'react';
-import { addDoc, collection } from 'firebase/firestore';
-import { db } from '../firebase';
 
-export function ActivityForm({ user, partnerId }) {
+export function ActivityForm({ onAddActivity }) {
   const [activity, setActivity] = useState('');
   const [category, setCategory] = useState('');
   const [subcategory, setSubcategory] = useState('');
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
     if (activity && category && subcategory) {
-      try {
-        await addDoc(collection(db, 'pendingActivities'), {
-          activity,
-          category,
-          subcategory,
-          createdBy: user.uid,
-          createdFor: partnerId,
-          status: 'pending',
-          createdAt: new Date()
-        });
-        setActivity('');
-        setCategory('');
-        setSubcategory('');
-        alert('Activity submitted for partner approval!');
-      } catch (error) {
-        console.error("Error adding pending activity: ", error);
-        alert('Failed to submit activity. Please try again.');
-      }
+      onAddActivity({ activity, category, subcategory });
+      setActivity('');
+      setCategory('');
+      setSubcategory('');
+      alert('Activity submitted for partner approval!');
     }
   };
 

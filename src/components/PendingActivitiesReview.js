@@ -1,71 +1,32 @@
-import React, { useState, useEffect } from 'react';
-import { collection, query, where, onSnapshot, doc, updateDoc, deleteDoc, addDoc } from 'firebase/firestore';
-import { db } from '../firebase';
+import React, { useState } from 'react';
 import { SwipeableActivityCard } from './SwipeableActivityCard';
 
-export function PendingActivitiesReview({ user }) {
-  const [pendingActivities, setPendingActivities] = useState([]);
-  const [currentActivity, setCurrentActivity] = useState(null);
+export function PendingActivitiesReview({ pendingActivities, onApprove, onReject }) {
+  const [currentActivityIndex, setCurrentActivityIndex] = useState(0);
   const [note, setNote] = useState('');
 
-  useEffect(() => {
-    if (user) {
-      const q = query(
-        collection(db, 'pendingActivities'),
-        where('createdFor', '==', user.uid),
-        where('status', '==', 'pending')
-      );
-      const unsubscribe = onSnapshot(q, (querySnapshot) => {
-        const activities = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        setPendingActivities(activities);
-        if (activities.length > 0 && !currentActivity) {
-          setCurrentActivity(activities[0]);
-        }
-      });
-      return () => unsubscribe();
-    }
-  }, [user, currentActivity]);
-
-  const handleSwipe = async (direction, activity) => {
+  const handleSwipe = (direction, activity) => {
     if (direction === 'right') {
-      await handleAccept(activity);
+      onApprove(activity);
     } else {
-      setCurrentActivity(activity);
+      setNote('');
       // Show note input for rejection
     }
+    setCurrentActivityIndex(prevIndex => prevIndex + 1);
   };
 
-  const handleAccept = async (activity) => {
-    try {
-      await addDoc(collection(db, 'activities'), {
-        ...activity,
-        status: 'approved',
-        approvedAt: new Date()
-      });
-      await deleteDoc(doc(db, 'pendingActivities', activity.id));
-      setCurrentActivity(pendingActivities[pendingActivities.indexOf(activity) + 1] || null);
-    } catch (error) {
-      console.error("Error accepting activity: ", error);
-    }
+  const handleReject = () => {
+    const currentActivity = pendingActivities[currentActivityIndex];
+    onReject(currentActivity, note);
+    setNote('');
+    setCurrentActivityIndex(prevIndex => prevIndex + 1);
   };
 
-  const handleReject = async () => {
-    try {
-      await updateDoc(doc(db, 'pendingActivities', currentActivity.id), {
-        status: 'rejected',
-        rejectionNote: note,
-        rejectedAt: new Date()
-      });
-      setCurrentActivity(pendingActivities[pendingActivities.indexOf(currentActivity) + 1] || null);
-      setNote('');
-    } catch (error) {
-      console.error("Error rejecting activity: ", error);
-    }
-  };
-
-  if (!currentActivity) {
+  if (pendingActivities.length === 0 || currentActivityIndex >= pendingActivities.length) {
     return <p>No pending activities to review.</p>;
   }
+
+  const currentActivity = pendingActivities[currentActivityIndex];
 
   return (
     <div className="relative h-96">
